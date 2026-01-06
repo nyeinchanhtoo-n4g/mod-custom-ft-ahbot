@@ -140,8 +140,12 @@ void CustomFTAuctionHouseBot::LoadCustomItemsFromDatabase()
 {
     CustomItemIDs.clear();
     CustomItemPrices.clear();
+    CustomItemBidPrices.clear();
+    CustomItemBuyoutPrices.clear();
+    CustomItemStackCounts.clear();
+    CustomItemMaxAmounts.clear();
 
-    QueryResult result = CharacterDatabase.Query("SELECT `item_id`, `price` FROM `auctionhouse_custom_bot` WHERE `enabled` = 1");
+    QueryResult result = CharacterDatabase.Query("SELECT `item_id`, `price`, `bid_price`, `buyout_price`, `stack_count`, `max_amount` FROM `auctionhouse_custom_bot` WHERE `enabled` = 1");
     if (!result)
     {
         LOG_ERROR("module", "CustomFTAuctionHouseBot: No items found in auctionhouse_custom_bot table or table does not exist.");
@@ -154,6 +158,10 @@ void CustomFTAuctionHouseBot::LoadCustomItemsFromDatabase()
         Field* fields = result->Fetch();
         uint32 itemID = fields[0].Get<uint32>();
         uint64 price = fields[1].Get<uint64>();
+        uint64 bidPrice = fields[2].Get<uint64>();
+        uint64 buyoutPrice = fields[3].Get<uint64>();
+        uint32 stackCount = fields[4].Get<uint32>();
+        uint32 maxAmount = fields[5].Get<uint32>();
 
         // Verify item exists in item_template
         ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemID);
@@ -164,8 +172,16 @@ void CustomFTAuctionHouseBot::LoadCustomItemsFromDatabase()
             continue;
         }
 
+        // Validate stack_count (must be at least 1)
+        if (stackCount < 1)
+            stackCount = 1;
+
         CustomItemIDs.push_back(itemID);
         CustomItemPrices[itemID] = price;
+        CustomItemBidPrices[itemID] = bidPrice;
+        CustomItemBuyoutPrices[itemID] = buyoutPrice;
+        CustomItemStackCounts[itemID] = stackCount;
+        CustomItemMaxAmounts[itemID] = maxAmount;
         itemCount++;
     } while (result->NextRow());
 
@@ -196,28 +212,43 @@ void CustomFTAuctionHouseBot::SetCyclesBetweenSell()
     CyclesBetweenSellAction = urand(CyclesBetweenSellActionMin, CyclesBetweenSellActionMax);
 }
 
-uint32 CustomFTAuctionHouseBot::GetStackSizeForItem(ItemTemplate const* itemProto) const
+uint32 CustomFTAuctionHouseBot::GetStackSizeForItem(uint32 itemID, ItemTemplate const* itemProto) const
 {
     if (itemProto == NULL)
         return 1;
 
-    // Default to stack size of 1 for most items
-    // Can be customized later if needed
-    if (itemProto->Stackable > 1)
-        return 1; // Always sell single items for now
+    // Check if stack_count is set in database
+    auto stackIt = CustomItemStackCounts.find(itemID);
+    if (stackIt != CustomItemStackCounts.end() && stackIt->second > 0)
+    {
+        uint32 dbStackCount = stackIt->second;
+        // Ensure stack count doesn't exceed item's max stackable amount
+        if (itemProto->Stackable > 0 && dbStackCount > itemProto->Stackable)
+            return itemProto->Stackable;
+        return dbStackCount;
+    }
 
+    // Default to stack size of 1 if not set in database
     return 1;
 }
 
 void CustomFTAuctionHouseBot::CalculateItemValue(uint32 itemID, uint64 basePrice, uint64& outBidPrice, uint64& outBuyoutPrice)
 {
-    outBuyoutPrice = basePrice;
-
-    // Apply price variation
-    outBuyoutPrice = urand(
-        static_cast<uint64>(outBuyoutPrice * (1.0f - BuyoutVariationReducePercent)),
-        static_cast<uint64>(outBuyoutPrice * (1.0f + BuyoutVariationAddPercent))
-    );
+    // Check if buyout_price is set in database
+    auto buyoutIt = CustomItemBuyoutPrices.find(itemID);
+    if (buyoutIt != CustomItemBuyoutPrices.end() && buyoutIt->second > 0)
+    {
+        outBuyoutPrice = buyoutIt->second;
+    }
+    else
+    {
+        // Use base price and apply variation
+        outBuyoutPrice = basePrice;
+        outBuyoutPrice = urand(
+            static_cast<uint64>(outBuyoutPrice * (1.0f - BuyoutVariationReducePercent)),
+            static_cast<uint64>(outBuyoutPrice * (1.0f + BuyoutVariationAddPercent))
+        );
+    }
 
     // Avoid price overflows
     if (outBuyoutPrice > MaxBuyoutPriceInCopper)
@@ -227,17 +258,30 @@ void CustomFTAuctionHouseBot::CalculateItemValue(uint32 itemID, uint64 basePrice
     if (outBuyoutPrice == 0)
         outBuyoutPrice = 1;
 
-    // Calculate bid price based on variance against buyout price
-    float sellVarianceBidPriceTopPercent = 1.0f - BidVariationHighReducePercent;
-    float sellVarianceBidPriceBottomPercent = 1.0f - BidVariationLowReducePercent;
-    outBidPrice = urand(
-        static_cast<uint64>(sellVarianceBidPriceBottomPercent * outBuyoutPrice),
-        static_cast<uint64>(sellVarianceBidPriceTopPercent * outBuyoutPrice)
-    );
+    // Check if bid_price is set in database
+    auto bidIt = CustomItemBidPrices.find(itemID);
+    if (bidIt != CustomItemBidPrices.end() && bidIt->second > 0)
+    {
+        outBidPrice = bidIt->second;
+    }
+    else
+    {
+        // Calculate bid price based on variance against buyout price
+        float sellVarianceBidPriceTopPercent = 1.0f - BidVariationHighReducePercent;
+        float sellVarianceBidPriceBottomPercent = 1.0f - BidVariationLowReducePercent;
+        outBidPrice = urand(
+            static_cast<uint64>(sellVarianceBidPriceBottomPercent * outBuyoutPrice),
+            static_cast<uint64>(sellVarianceBidPriceTopPercent * outBuyoutPrice)
+        );
+    }
 
     // Ensure bid price is at least 1
     if (outBidPrice == 0)
         outBidPrice = 1;
+
+    // Ensure bid price is not higher than buyout price
+    if (outBidPrice > outBuyoutPrice)
+        outBidPrice = outBuyoutPrice;
 }
 
 uint32 CustomFTAuctionHouseBot::GetRandomItemIDForListing()
@@ -309,9 +353,24 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
     if (debug_Out)
         LOG_INFO("module", "CustomFTAuctionHouseBot: Adding {} Auctions", newItemsToListCount);
 
-    uint32 itemsGenerated = 0;
-    for (uint32 cnt = 1; cnt <= newItemsToListCount; cnt++)
+    // Count current listings per item for max_amount checking
+    std::unordered_map<uint32, uint32> itemListingCounts;
+    for (auto const& auctionPair : auctionHouse->GetAuctions())
     {
+        AuctionEntry* existingAuction = auctionPair.second;
+        if (existingAuction && existingAuction->owner.GetCounter() == OwnerGUID)
+        {
+            itemListingCounts[existingAuction->item_template]++;
+        }
+    }
+
+    uint32 itemsGenerated = 0;
+    uint32 attempts = 0;
+    const uint32 maxAttempts = newItemsToListCount * 10; // Prevent infinite loop
+
+    while (itemsGenerated < newItemsToListCount && attempts < maxAttempts)
+    {
+        attempts++;
         auto trans = CharacterDatabase.BeginTransaction();
 
         uint32 itemID = GetRandomItemIDForListing();
@@ -320,6 +379,19 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
             if (debug_Out)
                 LOG_ERROR("module", "CustomFTAuctionHouseBot: GetRandomItemIDForListing() returned 0");
             break;
+        }
+
+        // Check max_amount limit
+        auto maxAmountIt = CustomItemMaxAmounts.find(itemID);
+        if (maxAmountIt != CustomItemMaxAmounts.end() && maxAmountIt->second > 0)
+        {
+            uint32 currentCount = itemListingCounts[itemID];
+            if (currentCount >= maxAmountIt->second)
+            {
+                if (debug_Out)
+                    LOG_INFO("module", "CustomFTAuctionHouseBot: Item ID {} has reached max_amount limit ({}), skipping.", itemID, maxAmountIt->second);
+                continue;
+            }
         }
 
         // Get price from database
@@ -362,8 +434,8 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
         // Define a duration
         uint32 etime = urand(ListingExpireTimeInSecondsMin, ListingExpireTimeInSecondsMax);
 
-        // Set stack size
-        uint32 stackCount = GetStackSizeForItem(prototype);
+        // Set stack size from database
+        uint32 stackCount = GetStackSizeForItem(itemID, prototype);
         item->SetCount(stackCount);
 
         uint32 dep = sAuctionMgr->GetAuctionDeposit(ahEntry, etime, item, stackCount);
@@ -387,6 +459,7 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
         auctionHouse->AddAuction(auctionEntry);
         auctionEntry->SaveToDB(trans);
         itemsGenerated++;
+        itemListingCounts[itemID]++; // Update count after successful listing
 
         CharacterDatabase.CommitTransaction(trans);
     }

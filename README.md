@@ -27,11 +27,33 @@ Custom FT Auction House Bot သည် mod-ah-bot-plus-master ကို reference
 
 `auctionhouse_custom_bot` table တွင် item နဲ့ price တွေကို insert လုပ်ပါ:
 
+### Table Fields:
+- `item_id` - Item ID from item_template (required)
+- `price` - Base price in copper (used if bid_price/buyout_price not set)
+- `bid_price` - Bid price in copper (0 = use calculated from price with variation)
+- `buyout_price` - Buyout price in copper (0 = use calculated from price with variation)
+- `stack_count` - Stack count per auction (default: 1)
+- `max_amount` - Maximum amount of this item to list (0 = unlimited)
+- `enabled` - Whether this item is enabled for sale (1 = enabled, 0 = disabled)
+
+### Example:
+
 ```sql
+-- Simple example with base price only (bid/buyout will be calculated with variation)
 INSERT INTO `auctionhouse_custom_bot` (`item_id`, `price`, `enabled`) VALUES
-(2589, 10000, 1),  -- Linen Cloth, 1 gold
-(4306, 50000, 1);  -- Silk Cloth, 5 gold
+(2589, 10000, 1),  -- Linen Cloth, 1 gold base price
+(4306, 50000, 1);  -- Silk Cloth, 5 gold base price
+
+-- Advanced example with all fields
+INSERT INTO `auctionhouse_custom_bot` (`item_id`, `price`, `bid_price`, `buyout_price`, `stack_count`, `max_amount`, `enabled`) VALUES
+(2589, 10000, 8000, 12000, 5, 10, 1),  -- Linen Cloth: bid 80s, buyout 1g20s, stack 5, max 10 listings
+(4306, 50000, 0, 0, 1, 0, 1);  -- Silk Cloth: use calculated prices, stack 1, unlimited listings
 ```
+
+**Notes:**
+- `bid_price` နဲ့ `buyout_price` က 0 ဖြစ်ရင် `price` ကို base အဖြစ် သုံးပြီး variation percentages တွေနဲ့ calculate လုပ်မယ်
+- `stack_count` က item ရဲ့ max stackable amount ထက် မကျော်ရဘူး
+- `max_amount` က 0 ဖြစ်ရင် unlimited listings ဖြစ်မယ်
 
 ## Configuration
 

@@ -130,7 +130,11 @@ private:
 
     // Custom database items and prices
     std::vector<uint32> CustomItemIDs;
-    std::unordered_map<uint32, uint64> CustomItemPrices; // item_id -> price in copper
+    std::unordered_map<uint32, uint64> CustomItemPrices; // item_id -> base price in copper
+    std::unordered_map<uint32, uint64> CustomItemBidPrices; // item_id -> bid price in copper (0 = use calculated)
+    std::unordered_map<uint32, uint64> CustomItemBuyoutPrices; // item_id -> buyout price in copper (0 = use calculated)
+    std::unordered_map<uint32, uint32> CustomItemStackCounts; // item_id -> stack count
+    std::unordered_map<uint32, uint32> CustomItemMaxAmounts; // item_id -> max amount to list (0 = unlimited)
 
     FactionSpecificAuctionHouseConfig AllianceConfig;
     FactionSpecificAuctionHouseConfig HordeConfig;
@@ -157,7 +161,7 @@ public:
     void SetCyclesBetweenSell();
     void GetConfigMinAndMax(std::string config, uint32& min, uint32& max);
     void AddCharacter(uint32 characterGUID);
-    uint32 GetStackSizeForItem(ItemTemplate const* itemProto) const;
+    uint32 GetStackSizeForItem(uint32 itemID, ItemTemplate const* itemProto) const;
     void CalculateItemValue(uint32 itemID, uint64 basePrice, uint64& outBidPrice, uint64& outBuyoutPrice);
     void LoadCustomItemsFromDatabase();
     uint32 GetRandomItemIDForListing();
