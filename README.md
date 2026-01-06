@@ -1,6 +1,6 @@
 # Custom FT Auction House Bot
 
-Custom FT Auction House Bot သည် mod-ah-bot-plus-master ကို reference ယူပြီး ရေးထားသော custom auction house bot ဖြစ်သည်။
+Custom FT Auction House Bot သည်  FairyTail Server အတွက် ရေးထားသော custom auction house bot ဖြစ်သည်။
 
 ## အထူးလုပ်ဆောင်ချက်များ
 
