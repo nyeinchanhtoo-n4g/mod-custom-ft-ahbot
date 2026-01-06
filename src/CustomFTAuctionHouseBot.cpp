@@ -223,8 +223,9 @@ uint32 CustomFTAuctionHouseBot::GetStackSizeForItem(uint32 itemID, ItemTemplate 
     {
         uint32 dbStackCount = stackIt->second;
         // Ensure stack count doesn't exceed item's max stackable amount
-        if (itemProto->Stackable > 0 && dbStackCount > itemProto->Stackable)
-            return itemProto->Stackable;
+        uint32 maxStackable = static_cast<uint32>(itemProto->Stackable);
+        if (maxStackable > 0 && dbStackCount > maxStackable)
+            return maxStackable;
         return dbStackCount;
     }
 
@@ -482,7 +483,7 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
         LOG_INFO("module", "CustomFTAuctionHouseBot: Added {} items", itemsGenerated);
 }
 
-void CustomFTAuctionHouseBot::AddNewAuctionBuyerBotBid(std::vector<Player*> AHBPlayers, FactionSpecificAuctionHouseConfig *config)
+void CustomFTAuctionHouseBot::AddNewAuctionBuyerBotBid(std::vector<Player*> /*AHBPlayers*/, FactionSpecificAuctionHouseConfig* /*config*/)
 {
     // Buyer bot functionality - prepared for future use
     // Currently disabled, but structure is ready
