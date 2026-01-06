@@ -354,19 +354,23 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
         LOG_INFO("module", "CustomFTAuctionHouseBot: Adding {} Auctions", newItemsToListCount);
 
     // Count current listings per item for max_amount checking using database query
+    // Query auction IDs and look up item_template from AuctionEntry objects
     std::unordered_map<uint32, uint32> itemListingCounts;
-    if (!AHCharactersGUIDsForQuery.empty())
+    if (!AHCharactersGUIDsForQuery.empty() && auctionHouse)
     {
-        std::string queryString = "SELECT item_template, COUNT(*) as count FROM auctionhouse WHERE itemowner IN ({}) AND houseid = {} GROUP BY item_template";
+        std::string queryString = "SELECT id FROM auctionhouse WHERE itemowner IN ({}) AND houseid = {}";
         QueryResult countResult = CharacterDatabase.Query(queryString, AHCharactersGUIDsForQuery, config->GetAHID());
         if (countResult)
         {
             do
             {
                 Field* fields = countResult->Fetch();
-                uint32 itemTemplate = fields[0].Get<uint32>();
-                uint32 count = fields[1].Get<uint32>();
-                itemListingCounts[itemTemplate] = count;
+                uint32 auctionID = fields[0].Get<uint32>();
+                AuctionEntry* auction = auctionHouse->GetAuction(auctionID);
+                if (auction && auction->item_template > 0)
+                {
+                    itemListingCounts[auction->item_template]++;
+                }
             } while (countResult->NextRow());
         }
     }
