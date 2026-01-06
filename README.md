@@ -45,10 +45,10 @@ Config file: `conf/mod_custom_ft_ahbot.conf`
 ## In-Game Commands
 
 GM commands:
-- `.customft_ahbot reload` - Configuration ကို reload လုပ်ရန်
-- `.customft_ahbot empty` - Auction house မှ bot auctions အားလုံးကို ဖယ်ရှားရန်
-- `.customft_ahbot update` - Immediate update cycle run လုပ်ရန်
-- `.customft_ahbot help` - Help message ပြရန်
+- `.ftahbot reload` - Configuration ကို reload လုပ်ရန်
+- `.ftahbot empty` - Auction house မှ bot auctions အားလုံးကို ဖယ်ရှားရန်
+- `.ftahbot update` - Immediate update cycle run လုပ်ရန်
+- `.ftahbot help` - Help message ပြရန်
 
 ## Notes
 

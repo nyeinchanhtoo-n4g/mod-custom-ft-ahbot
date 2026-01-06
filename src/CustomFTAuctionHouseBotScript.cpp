@@ -142,7 +142,7 @@ public:
         };
 
         static Acore::ChatCommands::ChatCommandTable commandTable = {
-            {"customft_ahbot", CustomFTAHBotCommandTable},
+            {"ftahbot", CustomFTAHBotCommandTable},
         };
 
         return commandTable;
@@ -185,9 +185,9 @@ public:
     static bool HandleCustomFTAHBotHelpCommand(ChatHandler* handler, char const* /*args*/)
     {
         handler->PSendSysMessage("CustomFTAuctionHouseBot commands:");
-        handler->PSendSysMessage("  .customft_ahbot reload - Reloads configuration");
-        handler->PSendSysMessage("  .customft_ahbot empty  - Removes all CustomFTAuctionHouseBot auctions");
-        handler->PSendSysMessage("  .customft_ahbot update - Runs an update cycle");
+        handler->PSendSysMessage("  .ftahbot reload - Reloads configuration");
+        handler->PSendSysMessage("  .ftahbot empty  - Removes all CustomFTAuctionHouseBot auctions");
+        handler->PSendSysMessage("  .ftahbot update - Runs an update cycle");
         return true;
     }
 };
