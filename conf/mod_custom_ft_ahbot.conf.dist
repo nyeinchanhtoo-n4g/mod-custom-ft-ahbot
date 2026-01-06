@@ -1,0 +1,166 @@
+[worldserver]
+
+###################################################################################################
+# CUSTOM FT AUCTION HOUSE BOT IN-GAME COMMANDS
+#
+#    Available GM commands:
+#        .ahbot reload  - Reloads AuctionHouseBot configuration
+#        .ahbot empty   - Clears all AuctionHouseBot auctions from all auction houses
+#        .ahbot update  - Forces an immediate update cycle
+###################################################################################################
+
+###############################################################################
+# CUSTOM FT AUCTION HOUSE BOT SETTINGS
+#    CustomFT_AuctionHouseBot.DEBUG
+#        Enable/Disable Debugging output
+#    Default: false (disabled)
+#
+#    CustomFT_AuctionHouseBot.DEBUG_FILTERS
+#        Enable/Disable Debugging output from Filters
+#    Default: false (disabled)
+#
+#    CustomFT_AuctionHouseBot.MinutesBetweenSellCycle
+#        How many minutes to wait before selling items again.
+#        Value can be a single number in order to wait X minutes before selling
+#        again, or a pair of numbers separated by a ':' to wait a random 
+#        number of minutes between X and Y (e.g. 3:15 to wait 3-15 minutes
+#        between cycles).
+#    Default: 10080 (1 week = 7 days * 24 hours * 60 minutes)
+#
+#    CustomFT_AuctionHouseBot.EnableSeller
+#        Enable/Disable the part of AHBot that puts items up for auction
+#    Default: true (enabled)
+#
+#    CustomFT_AuctionHouseBot.OwnerGUID
+#        The character GUID that will be used to create auctions.
+#        This bot only uses items from the auctionhouse_custom_bot database table.
+#    Default: 1
+#
+#    CustomFT_AuctionHouseBot.ItemsPerCycle
+#        How many items to post on the auction house every house update.
+#    Default 150
+#
+#    CustomFT_AuctionHouseBot.ListingExpireTimeInSecondsMin
+#    CustomFT_AuctionHouseBot.ListingExpireTimeInSecondsMax
+#        Bot-posted auctions will have a listing time between these two values,
+#        and is important to make the auction house feel dynamic in timing
+#    Default 900 (15 minutes) to 86400 (24 hours)
+#		 Note: Do not set lower than 15 minutes (900) or higher than 48 hours (172800)
+###############################################################################
+
+CustomFT_AuctionHouseBot.DEBUG = false
+CustomFT_AuctionHouseBot.DEBUG_FILTERS = false
+CustomFT_AuctionHouseBot.MinutesBetweenSellCycle = 10080
+CustomFT_AuctionHouseBot.EnableSeller = true
+CustomFT_AuctionHouseBot.OwnerGUID = 1
+CustomFT_AuctionHouseBot.ItemsPerCycle = 150
+CustomFT_AuctionHouseBot.ListingExpireTimeInSecondsMin = 900
+CustomFT_AuctionHouseBot.ListingExpireTimeInSecondsMax = 86400
+
+###############################################################################
+#    CustomFT_AuctionHouseBot.MaxBuyoutPriceInCopper
+#        Maximum amount that a buyout on a listing can be in copper.  Prevents
+#        overflow.  Don't increase this, but you can decrease it.
+#    Default 1000000000 (100k gold)
+#
+#    CustomFT_AuctionHouseBot.BuyoutVariationReducePercent
+#    CustomFT_AuctionHouseBot.BuyoutVariationAddPercent
+#        After a price is calculated using the price from database, it is randomized 
+#        within a band up to +AddPercent and down to -ReducePercent
+#    Default 0.15 (down) and 0.25 (up) - Which means the price range -15% or up +25%
+#        Note: Do not go negative on either number.  Setting both to 0 will cause
+#        no price variation at all
+#
+#    CustomFT_AuctionHouseBot.BidVariationHighReducePercent
+#    CustomFT_AuctionHouseBot.BidVariationLowReducePercent
+#        After the buyout amount is calculated, this is how much deeper down
+#        the bid price can be.  It will range from buyout-HighReduce to buyout-LowReduce
+#        percent
+#    Default 0 (high) and .25 (low) - Starting bid will be Buyout (high) and Buyout-25% (low)
+#        Note: Do not go negative on either number.  Set both to 0 if you want bids
+#        to always be exactly buyout for both buyer and seller.
+###############################################################################
+
+CustomFT_AuctionHouseBot.MaxBuyoutPriceInCopper = 1000000000
+CustomFT_AuctionHouseBot.BuyoutVariationReducePercent = 0.15
+CustomFT_AuctionHouseBot.BuyoutVariationAddPercent = 0.25
+CustomFT_AuctionHouseBot.BidVariationHighReducePercent = 0
+CustomFT_AuctionHouseBot.BidVariationLowReducePercent = 0.25
+
+###############################################################################
+#    CustomFT_AuctionHouseBot.<faction>.MinItems
+#    CustomFT_AuctionHouseBot.<faction>.MaxItems
+#        The minimum and maximum number of items to post on that auction house
+#    Note: If you have AllowTwoSide.Interaction.Auction enabled in your AzerothCore's
+#        worldserver.conf, then only the Neutral AH will appear to fill in the
+#        database. Auctions will still appear in non-Neutral AH.
+#    Default: 15000 for both
+###############################################################################
+
+CustomFT_AuctionHouseBot.Alliance.MinItems = 15000
+CustomFT_AuctionHouseBot.Alliance.MaxItems = 15000
+CustomFT_AuctionHouseBot.Horde.MinItems = 15000
+CustomFT_AuctionHouseBot.Horde.MaxItems = 15000
+CustomFT_AuctionHouseBot.Neutral.MinItems = 15000
+CustomFT_AuctionHouseBot.Neutral.MaxItems = 15000
+
+###############################################################################
+# BUYER PROPERTIES (Prepared for future use)
+#    Note: Buyer bot is currently disabled and prepared for future implementation
+#
+#    CustomFT_AuctionHouseBot.Buyer.Enabled
+#        Enable/Disable the buying bot.
+#    Default: false (disabled)
+#
+#    CustomFT_AuctionHouseBot.Buyer.BuyCandidatesPerBuyCycle
+#        How many to items to price and attempt to buy.  Note, this number of
+#        items will be selected from each of the auction house types (Alliance,
+#        Horde, Neutral).  Meaning if you set this as 10, then up to 10 items
+#        from each AH will be selected (total of 30).  Whole numbers only.
+#        Very large values can impact server performance, and is generally 
+#        not neccessary. This runs once every Buy/Sell cycle as defined 
+#        by CustomFT_AuctionHouseBot.AuctionHouseManagerCyclesBetweenBuyOrSell.
+#        Value can be a single number in order to consider buying X items each
+#        Buy/Sell cycle, or a pair of numbers separated by a ':' to consider 
+#        buying a random number between X and Y items. (e.g. 1:5 to consider 1-5 items)
+#    Default: 1 (1 item per auction house is considered per Buy/Sell cycle)
+#
+#    CustomFT_AuctionHouseBot.Buyer.AcceptablePriceModifier
+#        The buyer bot calculates item prices the same way the selling
+#        bot does, then multiplies that value by this number to determine
+#        how much it is willing to spend.
+#        A value of 1 means the buyer bot will generally pay the same as the
+#        seller bot lists. Similarly, a value of 1.5 means it will pay roughly
+#        50% more than the seller bot's listed price.  Can be less than 1 if you
+#        want the buyer to be more stingy (0.5 means buyer will pay up to 50%
+#        of what the seller sells for), but do not go lower than 0
+#    Default: 1
+#
+#    CustomFT_AuctionHouseBot.Buyer.AlwaysBidMaxCalculatedPrice
+#        When enabled, the buyer bot will use the calculated max price they
+#        were willing to pay as the amount they bid with, instead of minimum
+#        bid amount.
+#    Default: false
+#
+#    CustomFT_AuctionHouseBot.Buyer.PreventOverpayingForVendorItems
+#        When enabled, the buyer bot will avoid purchasing auction house items
+#        that are being sold for more than the vendor sell price. This prevents
+#        players from "gaming" the economy by flipping vendor items.
+#        If disabled, the bot may still purchase vendor items above vendor value
+#        if they fall within the acceptable price modifier rules.
+#    Default: true
+#
+#    CustomFT_AuctionHouseBot.Buyer.BidAgainstPlayers
+#        When enabled, the buyer bot will post bids against auctions that players
+#        bid against, within the acceptable price range the buyer bot was willing
+#        to pay
+#    Default: false
+###############################################################################
+
+CustomFT_AuctionHouseBot.Buyer.Enabled = false
+CustomFT_AuctionHouseBot.Buyer.BuyCandidatesPerBuyCycle = 1
+CustomFT_AuctionHouseBot.Buyer.AcceptablePriceModifier = 1
+CustomFT_AuctionHouseBot.Buyer.AlwaysBidMaxCalculatedPrice = false
+CustomFT_AuctionHouseBot.Buyer.PreventOverpayingForVendorItems = true
+CustomFT_AuctionHouseBot.Buyer.BidAgainstPlayers = false
+
