@@ -353,14 +353,21 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
     if (debug_Out)
         LOG_INFO("module", "CustomFTAuctionHouseBot: Adding {} Auctions", newItemsToListCount);
 
-    // Count current listings per item for max_amount checking
+    // Count current listings per item for max_amount checking using database query
     std::unordered_map<uint32, uint32> itemListingCounts;
-    for (auto const& auctionPair : auctionHouse->GetAuctions())
+    if (!AHCharactersGUIDsForQuery.empty())
     {
-        AuctionEntry* existingAuction = auctionPair.second;
-        if (existingAuction && existingAuction->owner.GetCounter() == OwnerGUID)
+        std::string queryString = "SELECT item_template, COUNT(*) as count FROM auctionhouse WHERE itemowner IN ({}) AND houseid = {} GROUP BY item_template";
+        QueryResult countResult = CharacterDatabase.Query(queryString, AHCharactersGUIDsForQuery, config->GetAHID());
+        if (countResult)
         {
-            itemListingCounts[existingAuction->item_template]++;
+            do
+            {
+                Field* fields = countResult->Fetch();
+                uint32 itemTemplate = fields[0].Get<uint32>();
+                uint32 count = fields[1].Get<uint32>();
+                itemListingCounts[itemTemplate] = count;
+            } while (countResult->NextRow());
         }
     }
 
@@ -371,7 +378,6 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
     while (itemsGenerated < newItemsToListCount && attempts < maxAttempts)
     {
         attempts++;
-        auto trans = CharacterDatabase.BeginTransaction();
 
         uint32 itemID = GetRandomItemIDForListing();
         if (itemID == 0)
@@ -411,6 +417,9 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
             continue;
         }
 
+        // Start transaction only after all validations pass
+        auto trans = CharacterDatabase.BeginTransaction();
+
         Player* AHBplayer = AHBPlayers[urand(0, AHBPlayers.size() - 1)];
 
         Item* item = Item::CreateItem(itemID, 1, AHBplayer);
@@ -418,6 +427,7 @@ void CustomFTAuctionHouseBot::AddNewAuctions(std::vector<Player*> AHBPlayers, Fa
         {
             if (debug_Out)
                 LOG_ERROR("module", "CustomFTAuctionHouseBot: Item::CreateItem() returned NULL");
+            CharacterDatabase.CommitTransaction(trans); // Rollback by committing empty transaction
             break;
         }
         item->AddToUpdateQueueOf(AHBplayer);
